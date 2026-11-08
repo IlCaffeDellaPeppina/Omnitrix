@@ -25,14 +25,14 @@ const W=640, H=640, cx=W/2, cy=H/2;
 // ===== IMPOSTAZIONI DA RITOCCARE =====
 const ZOOM = Number(params.get('zoom')) || 4.2;  // più alto = simbolo più grande / più ritagliato
 const TEXT_Y = 505;                              // altezza del testo (più alto = più in basso)
-const FONT = 'bold 38px system-ui, sans-serif';  // dimensione e stile del testo
+const FONT = 'bold 30px system-ui, sans-serif';  // dimensione e stile del testo
 // =====================================
 
 const emblemRadius = 320;   // raggio dello schermo circolare
 let original=null;
 let shown=45;               // temperatura mostrata (smussata)
 let targetTemp=45;          // temperatura più alta tra CPU e GPU
-let cpuTemp=NaN, gpuTemp=NaN;
+let cpuTemp=NaN, gpuTemp=NaN, liqTemp= NaN;
 let lastKey='';
 
 const clamp=v=>Math.max(0,Math.min(1,v));
@@ -73,7 +73,7 @@ function render(temp){
 
 function drawText(){
   const f=v=>Number.isFinite(v)?Math.round(v)+'°C':'--';
-  const txt='CPU '+f(cpuTemp)+'   GPU '+f(gpuTemp);
+  const txt='CPU '+f(cpuTemp)+'  GPU '+f(gpuTemp)+'  LIQ '+f(liqTemp);
   ctx.save();
   ctx.font=FONT;
   ctx.textAlign='center';
@@ -103,6 +103,7 @@ image.src = IMG_SRC;
 window.nzxt = { v1: { onMonitoringDataUpdate: (d) => {
   cpuTemp = d.cpus?.[0]?.temperature;
   gpuTemp = d.gpus?.[0]?.temperature;
+  liqTemp = d.kraken?.liquidTemperature;
   const t=[cpuTemp, gpuTemp].filter(Number.isFinite);
   if(t.length) targetTemp=Math.max(...t);   // la più alta tra CPU e GPU
 }}};
@@ -112,14 +113,14 @@ if(params.get('debug')!==null){
   const s=document.createElement('input');
   s.type='range'; s.min=35; s.max=80; s.value=45;
   s.style.cssText='position:fixed;bottom:10px;left:10%;width:80%';
-  s.oninput=()=>{ targetTemp=cpuTemp=gpuTemp=Number(s.value); };
+  s.oninput=()=>{ targetTemp=cpuTemp=gpuTemp=Number(s.value); liqTemp=Number(s.value)-15; };
   document.body.appendChild(s);
-  cpuTemp=gpuTemp=45;
+  cpuTemp=gpuTemp=45; liqTemp=30;
 }
 
 // Transizione dolce verso la temperatura reale + aggiornamento del testo
 setInterval(()=>{
-  const key=Math.round(cpuTemp)+'|'+Math.round(gpuTemp);
+  const key=Math.round(cpuTemp)+'|'+Math.round(gpuTemp)+'|'+Math.round(liqTemp);
   const moving=Math.abs(targetTemp-shown)>=0.1;
   if(!moving && key===lastKey) return;
   lastKey=key;
